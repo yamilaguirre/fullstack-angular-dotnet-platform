@@ -14,6 +14,8 @@ Monorepo for the Evalúa Consultores practical exercise: **Angular** consumes a 
 
 Detailed instructions live in each folder README.
 
+**New AI chat in Cursor:** start from [`docs/AI-HANDOFF.md`](docs/AI-HANDOFF.md) and [`.cursor/rules/evalua-project.mdc`](.cursor/rules/evalua-project.mdc).
+
 ## Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
