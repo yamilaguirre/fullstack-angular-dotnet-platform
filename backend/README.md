@@ -23,9 +23,10 @@ Smoke check without hitting client data:
 
 - `GET /health` → `{ "status": "ok", "service": "Evalua.Api" }`
 
-Paginated clients + country (stored procedure path):
+Paginated clients + country:
 
-- `GET /api/clientes/sp?page=1&pageSize=10` → JSON `items`, `page`, `pageSize`, `totalCount`
+- `GET /api/clientes/sp?page=1&pageSize=10` → via `dbo.usp_ClientesPaginados`
+- `GET /api/clientes/ef?page=1&pageSize=10` → via EF Core LINQ (`Include`, `Skip`, `Take`, `Select`)
 
 Connection string placeholder (Windows auth example):
 
