@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+
+# Secrets & local settings
+**/appsettings.Development.local.json
+**/secrets.json
+
+# .NET
+**/bin/
+**/obj/
+**/out/
+*.dll
+*.pdb
+*.cache
+**/TestResults/
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/angular/.angular/
+**/coverage/
+**/.sass-cache/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
