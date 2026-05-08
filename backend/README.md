@@ -1,68 +1,100 @@
-# Backend (.NET API)
+# Backend — Evalúa.Api (.NET 8)
 
-ASP.NET Core **Web API** on **.NET 8**, **SQL Server** via **EF Core**, Swagger in Development. Two paginated cliente endpoints arrive in subsequent phases (**stored procedure** + **LINQ**).
+ASP.NET Core **Web API** with **Swagger** (Development), **Entity Framework Core** (SQL Server), and **two** paginated JSON endpoints returning **clients + country**:
 
-## Database (SQL Server)
+| Endpoint | Implementation |
+|----------|----------------|
+| `GET /api/clientes/sp?page=&pageSize=` | Executes **`dbo.usp_ClientesPaginados`** (`FromSqlRaw` + keyless type). |
+| `GET /api/clientes/ef?page=&pageSize=` | **LINQ**: `Include` → ordered query → `CountAsync`, `Skip`, `Take`, `Select` to DTO. |
 
-Scripts in [`db/`](db/): run `001` → `002` → `003` on database `EvaluaClientes` (or update the connection string).
+JSON uses **camelCase** (`Program.cs`: `JsonNamingPolicy.CamelCase`).
 
-## Running the API locally
+---
 
-Requires [.NET 8 SDK](https://dotnet.microsoft.com/download):
+## Prerequisites
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- A reachable **SQL Server** with database **`EvaluaClientes`** provisioned via [`db/README.md`](db/README.md) scripts.
+
+---
+
+## Connection strings
+
+| File | Intended use |
+|------|----------------|
+| `appsettings.json` | Example **Windows Integrated Security**: `Trusted_Connection=True`. |
+| `appsettings.Development.json` | **SQL authentication** tuned for Docker: `localhost,1433`, user `sa`, password aligned with Compose (default `Evalua_Dev_2026!`). |
+
+**Do not ship real secrets.** For local overrides you can use [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets):
+
+```bash
+cd src/Evalua.Api
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "YOUR_CONNECTION_STRING"
+```
+
+---
+
+## Run
 
 ```bash
 cd backend/src/Evalua.Api
 dotnet restore
-dotnet ef --version    # optional: ensures design-time tools resolve
 dotnet run
 ```
 
-Default URLs (see `Properties/launchSettings.json`): HTTPS `https://localhost:7189`, HTTP `http://localhost:5191`. Swagger UI: **`/swagger`**.
+URLs come from [`Properties/launchSettings.json`](src/Evalua.Api/Properties/launchSettings.json) (typically `https://localhost:7189`, `http://localhost:5191`). Swagger UI: `/swagger`.
 
-Smoke check without hitting client data:
+### Smoke tests
 
-- `GET /health` → `{ "status": "ok", "service": "Evalua.Api" }`
-
-Paginated clients + country:
-
-- `GET /api/clientes/sp?page=1&pageSize=10` → via `dbo.usp_ClientesPaginados`
-- `GET /api/clientes/ef?page=1&pageSize=10` → via EF Core LINQ (`Include`, `Skip`, `Take`, `Select`)
-
-Connection string placeholder (Windows auth example):
-
-```
-Server=localhost;Database=EvaluaClientes;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
+```http
+GET /health
+GET /api/clientes/sp?page=1&pageSize=5
+GET /api/clientes/ef?page=1&pageSize=5
 ```
 
-CORS policy **`AngularLocalhost`** allows the Angular dev server at `http://localhost:4200`.
+Expected JSON shape:
 
-For macOS/Linux use `User ID=` / `Password=` or Docker SQL Server accordingly.
+```json
+{
+  "items": [
+    {
+      "idCliente": 1,
+      "nombreCompleto": "…",
+      "telefono": "…",
+      "idPais": 1,
+      "nombrePais": "…"
+    }
+  ],
+  "page": 1,
+  "pageSize": 5,
+  "totalCount": 8
+}
+```
 
 ---
 
-## Solution layout
+## Structure
 
-| Path | Role |
-|------|------|
-| `Evalua.Platform.sln` | Solution |
-| `src/Evalua.Api/` | ASP.NET Core host (`Program.cs`), controllers, EF context |
-| `src/Evalua.Api/Entities/` | `Cliente`, `Pais` POCOs mapped to existing tables |
-| `src/Evalua.Api/Data/AppDbContext.cs` | Fluent mapping to `dbo.Clientes` / `dbo.Paises` |
+| Area | Purpose |
+|------|---------|
+| `Controllers/` | `HealthController`, `ClientesSpController`, `ClientesEfController`. |
+| `Data/AppDbContext.cs` | EF mappings for `Clientes` / `Paises`; keyless `ClientePaginadoSpRow`. |
+| `Services/` | `ClientesStoredProcedureQuery`, `ClientesEntityFrameworkQuery`. |
+| `Contracts/` | `ClienteDto`, `PagedResponse<T>`. |
 
-## Architecture snapshot
+---
 
-```
-Client (Angular later)
-       │ HTTP JSON
-       ▼
-Evalua.Api  ←── AppDbContext → SQL Server (tables + SP)
-```
+## CORS
 
-## Tech stack references
+Policy **`AngularLocalhost`** allows `http://localhost:4200` for local Angular development (`Program.cs`).
 
-| Technology | Purpose |
-|------------|---------|
-| **ASP.NET Core** | HTTP pipeline, controllers, dependency injection container |
-| **EF Core** | ORM mapping; LINQ queries in a later endpoint |
-| **Swashbuckle** | Swagger / OpenAPI in Development |
-| **SQL Server** | Relational persistence; scripts under `db/` |
+---
+
+## Tech stack
+
+| Piece | Role |
+|-------|------|
+| ASP.NET Core | HTTP, DI, controllers |
+| EF Core + `Microsoft.EntityFrameworkCore.SqlServer` | ORM + SQL provider |
+| Swashbuckle | OpenAPI / Swagger UI |

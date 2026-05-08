@@ -1,50 +1,78 @@
-# Frontend (Angular)
+# Frontend — evalua-client (Angular 19)
 
-Standalone **Angular 19** app (`evalua-client`) served with `ng serve`.
+Standalone **Angular** application that fulfils the practical brief:
 
-## What it does
+- Loads **clientes** from the REST API (including **país** / `nombrePais`).
+- Server-side **pagination** (`page`, `pageSize` query params).
+- Toggle in the UI between **`/api/clientes/ef`** and **`/api/clientes/sp`**.
+- **`telefonoFormat` pipe** — displays numbers with a space every four characters from a normalized `+` prefix (e.g. `+56912345678` → `+569 1234 5678`).
+- **Jasmine + Karma** specs, including **`telefono-format.pipe.spec.ts`**.
 
-- Calls the .NET API (**EF** or **stored procedure** endpoints) and shows a **paginated table** of customers with **country** (`nombrePais`).
-- Formats telephone numbers in the grid with the `telefonoFormat` **pipe** (`+56912345678` → `+569 1234 5678`).
-- Unit tests with **Jasmine + Karma** (`telefono-format.pipe.spec.ts`, `app.component.spec.ts`).
+Angular version is **19** (CLI-generated workspace), satisfying the assignment requirement (**Angular 10 or higher**).
+
+---
 
 ## Prerequisites
 
-- Node.js **LTS** recommended (even-numbered major). The workspace was generated with `npm`.
-- Chrome (or Chromium) for Karma when not using headless.
+- **Node.js LTS** (recommended: **20.x** or **22.x**).
+- **Chrome** locally for interactive `ng test` (CLI opens a browser unless you pass `--browsers=ChromeHeadless`).
 
-## Install & run
+---
+
+## Install & serve
 
 ```bash
 cd frontend
-npm ci   # or npm install
-npm run start   # http://localhost:4200
+npm ci              # reproducible installs from package-lock.json
+npm run start       # ng serve → http://localhost:4200
 ```
 
-Configuration file `src/environments/environment.ts` swaps to `environment.development.ts` during `ng serve` / development build via `angular.json` `fileReplacements`. By default the API base URL is `http://localhost:5191`.
+### API URL (environments)
+
+- `environment.development.ts` → default API base **`http://localhost:5191`** (HTTP to avoid trusting dev HTTPS certificates).
+- `angular.json` uses **`fileReplacements`** so **development builds** substitute `environment.ts` → `environment.development.ts`.
+
+If your API listens elsewhere, edit `src/environments/environment.development.ts` (or swap ports in the backend `launchSettings.json`).
+
+---
 
 ## Tests
 
+Interactive:
+
 ```bash
-cd frontend
-npx ng test --no-watch --browsers=ChromeHeadless
+npm test
 ```
 
-## Project map
+CI / headless (same launcher GitHub Actions uses):
 
-| Area | Path | Notes |
-|------|------|--------|
-| Routing | `src/app/app.routes.ts` | Lazy-loads `ClientesListComponent` at `/` |
-| Shell | `src/app/app.component.*` | Hosts `<router-outlet />` |
-| Feature UI | `src/app/features/clientes-list/` | Signals + RxJS `switchMap` reload stream |
-| HTTP | `src/app/core/services/clientes.service.ts` | Builds `/api/clientes/{ef|sp}` URLs |
-| Models | `src/app/core/models/` | Mirrors API DTOs (`camelCase` JSON) |
-| Pipe | `src/app/shared/pipes/telefono-format.pipe.ts` | Presentation-only transform |
+```bash
+npm run test:ci
+```
 
-## Stack vocabulary
+`karma.conf.js` defines **`ChromeHeadlessCI`** (`--no-sandbox`, `--disable-dev-shm-usage`) for Linux agents.
 
-- **Standalone APIs:** components declare `imports` instead of NgModules.
-- **`provideHttpClient()`:** registers `HttpClient` for dependency injection.
-- **`@for` / `@if`:** modern built-in control-flow syntax (Angular 17+).
-- **Signals:** `signal()` + `()` reads keep component state explicit.
-- **RxJS `switchMap`:** cancels the previous HTTP request whenever the user triggers another reload (pagination / filters).
+Production build smoke:
+
+```bash
+npm run build
+```
+
+---
+
+## Code map
+
+| Path | Responsibility |
+|------|----------------|
+| `src/app/app.routes.ts` | Lazy route → `ClientesListComponent`. |
+| `src/app/features/clientes-list/` | Table, pagination UX, signals + RxJS reload (`switchMap`). |
+| `src/app/core/services/clientes.service.ts` | `HttpClient.get` to `/api/clientes/{ef|sp}`. |
+| `src/app/shared/pipes/telefono-format.pipe.ts` | Phone formatting + unit tests alongside. |
+
+---
+
+## Stack notes
+
+- **Standalone components** — `bootstrapApplication` + `app.config.ts` providers (`provideHttpClient`, `provideRouter`).
+- **Modern control flow** — `@if`, `@for` in templates.
+- **Signals** — component state with `signal()` / `()`.

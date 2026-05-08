@@ -1,78 +1,140 @@
-# Fullstack Angular + .NET Platform
+# fullstack-angular-dotnet-platform
 
-Monorepo for the Evalúa Consultores practical exercise: **Angular** consumes a **.NET 8 REST API** on **SQL Server**. Two paginated backends expose the same payload:
+Ejercicio práctico (**Evalúa Consultores**) — tiempo límite orientativo ~5 h: aplicación **Angular** que consume una **API REST en .NET 8**, datos en **SQL Server**, listado **paginado** de clientes con **país de origen**, **pipe** de formato de teléfono y **pruebas unitarias** (Jasmine/Karma) del pipe.
 
-- `GET /api/clientes/sp` → `dbo.usp_ClientesPaginados`
-- `GET /api/clientes/ef` → **Entity Framework Core + LINQ**
+This README is written so **any reviewer** can clone, install prerequisites, run database + API + SPA, and verify behaviour end-to-end.
 
-## Repository layout
+---
 
-| Path | Responsibility |
-|------|----------------|
-| [`backend/`](backend/) | ASP.NET Core Web API, EF Core, SQL scripts (`db/`). |
-| [`frontend/`](frontend/) | Angular standalone app, `HttpClient`, phone pipe, Jasmine/Karma. |
+## Contents (what you get)
 
-Detailed instructions live in each folder README.
+| Layer | Highlights |
+|--------|------------|
+| **Database** | `Paises`, `Clientes`, `dbo.usp_ClientesPaginados` (OFFSET/FETCH + total count). Scripts under [`backend/db/`](backend/db/) — see [`backend/db/README.md`](backend/db/README.md). |
+| **Backend** | ASP.NET Core Web API, EF Core, Swagger in Development, JSON **camelCase**. |
+| **Endpoints** | `GET /api/clientes/sp` (stored procedure) and `GET /api/clientes/ef` (LINQ/EF), same paged JSON contract. |
+| **Frontend** | Angular 19 standalone app: `HttpClient`, paginated table, `telefonoFormat` pipe, Karma specs. |
+| **DevOps** | [`docker-compose.yml`](docker-compose.yml) for local SQL Server, [`scripts/apply-sql-docker.sh`](scripts/apply-sql-docker.sh) to load scripts, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (build + tests). |
 
-**New AI chat in Cursor:** start from [`docs/AI-HANDOFF.md`](docs/AI-HANDOFF.md) and [`.cursor/rules/evalua-project.mdc`](.cursor/rules/evalua-project.mdc).
+More detail: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md). Contributor notes: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Node.js LTS](https://nodejs.org/) (recommended for Angular tooling)
-- [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) or compatible host
+| Tool | Version / note |
+|------|----------------|
+| [.NET **8** SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | `dotnet --version` → 8.x |
+| [Node.js **LTS**](https://nodejs.org/) (even major) | e.g. 20.x or 22.x for Angular |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | **Recommended** on macOS/Linux for SQL Server |
+| Web browser | For Swagger + Angular UI |
+| (Optional) [Azure Data Studio](https://aka.ms/azuredatastudio) / SSMS | Run SQL manually instead of the helper script |
 
-## End-to-end workflow
+---
 
-### 1. Database
+## Quick start (Docker SQL + API + Angular)
 
-Create a database (default name `EvaluaClientes`) and execute, in order:
+### 1. Clone
 
-1. `backend/db/001-schema.sql`
-2. `backend/db/002-seed.sql`
-3. `backend/db/003-stored-procedure.sql`
+```bash
+git clone https://github.com/yamilaguirre/fullstack-angular-dotnet-platform.git
+cd fullstack-angular-dotnet-platform
+```
 
-### 2. Backend API
+### 2. Start SQL Server
+
+```bash
+docker compose up -d
+```
+
+Optional: copy [`.env.example`](.env.example) to `.env` and change `MSSQL_SA_PASSWORD`. If you change it, **also** update `ConnectionStrings:DefaultConnection` in  
+`backend/src/Evalua.Api/appsettings.Development.json` so the password matches.
+
+Default dev password (documented, **not** for production): `Evalua_Dev_2026!`
+
+Wait ~10–30 s for SQL to accept connections (first run may pull the image).
+
+### 3. Load schema, data, and stored procedure
+
+```bash
+chmod +x scripts/apply-sql-docker.sh
+./scripts/apply-sql-docker.sh
+```
+
+If `sqlcmd` is missing inside the container (rare with `mssql/server:2022-latest`), run the same files manually with your SQL client — order in [`backend/db/README.md`](backend/db/README.md).
+
+### 4. Run the API
 
 ```bash
 cd backend/src/Evalua.Api
-# Ensure appsettings.json DefaultConnection points at your instance
 dotnet restore
 dotnet run
 ```
 
-- Swagger (Development): `https://localhost:7189/swagger`
-- Health probe: `GET https://localhost:7189/health`
+- **ASP.NETCORE_ENVIRONMENT** defaults to `Development` from `launchSettings.json` → uses **`appsettings.Development.json`** (SQL auth for Docker).
+- Swagger: `https://localhost:7189/swagger` (or check console for listening URLs).
+- Quick probe: `GET https://localhost:7189/health`
 
-### 3. Frontend
+### 5. Run the Angular app
 
 ```bash
 cd frontend
-npm install
+npm ci   # or npm install
 npm run start
 ```
 
-Browse to `http://localhost:4200`.
+Open **http://localhost:4200**. The UI calls `http://localhost:5191` by default (see `frontend/src/environments/environment.development.ts`).
 
-CORS is limited to `http://localhost:4200` while the API listens on the HTTPS/HTTP ports declared in `Properties/launchSettings.json` (`https://localhost:7189`, `http://localhost:5191` by default).
+You should see a **Clientes** table, **pagination**, country column, and **telephone** values formatted like `+569 1234 5678`. Use the dropdown to switch between **EF** and **Stored procedure** data sources.
 
-### 4. Automated tests (frontend)
+---
 
-```bash
-cd frontend
-npx ng test --no-watch --browsers=ChromeHeadless
+## Verify the assignment checklist (for evaluators)
+
+| Requirement | How to verify |
+|-------------|----------------|
+| Angular **≥10** consuming a **service** | Open DevTools → Network: requests to `/api/clientes/ef` or `/sp`. Code: `ClientesService`, `ClientesListComponent`. |
+| **Pipe** on phone field | Visually in the grid; implementation `frontend/src/app/shared/pipes/telefono-format.pipe.ts`. |
+| **Jasmine/Karma** on the pipe | `npm run test:ci` in `frontend/` (or `npx ng test` interactively). |
+| **.NET API** with **two** paginated services | Swagger: `GET /api/clientes/sp` and `GET /api/clientes/ef`. |
+| First service uses **stored procedure** | `ClientesStoredProcedureQuery` + `usp_ClientesPaginados`. |
+| Second uses **EF Core LINQ** | `ClientesEntityFrameworkQuery` (`Include`, `Skip`, `Take`, `Select`). |
+| **SQL Server** | Scripts in `backend/db/`; Docker optional via `docker-compose.yml`. |
+
+---
+
+## Windows / SQL Server (integrated security) alternative
+
+`appsettings.json` (non-Development) uses `Trusted_Connection=True` for a local Windows SQL instance. Point `Server` and `Database` to your instance, run the same SQL scripts on `EvaluaClientes`, then run the API with `ASPNETCORE_ENVIRONMENT=Production` **or** adjust configuration as needed — see [`backend/README.md`](backend/README.md).
+
+---
+
+## Automated CI
+
+On push / PR to `main`, GitHub Actions runs:
+
+- `dotnet build` on `backend/Evalua.Platform.sln` (Release)
+- `npm ci` + `ng build` in `frontend/`
+- `npm run test:ci` (Karma **ChromeHeadlessCI**)
+
+---
+
+## Project layout
+
+```
+├── backend/
+│   ├── db/                  # SQL scripts (+ README order)
+│   ├── Evalua.Platform.sln
+│   └── src/Evalua.Api/       # ASP.NET Core project
+├── frontend/                 # Angular workspace
+├── scripts/apply-sql-docker.sh
+├── docker-compose.yml
+├── .env.example              # Optional override for MSSQL_SA_PASSWORD
+└── .github/workflows/ci.yml
 ```
 
-## Implementation phases (historical)
-
-1. **Phase 0:** Repository scaffold + documentation skeleton.
-2. **Phase 1:** SQL schema, seed, paginated stored procedure.
-3. **Phase 2:** ASP.NET Core host + EF Core mappings + health endpoint.
-4. **Phase 3:** `/api/clientes/sp` implementation.
-5. **Phase 4:** `/api/clientes/ef` LINQ implementation.
-6. **Phase 5:** CORS for local Angular.
-7. **Phase 6–7:** Angular workspace, list UI, phone pipe, Karma specs.
+---
 
 ## License
 
-Private / assessment use unless otherwise noted.
+Assessment / portfolio use unless otherwise noted.

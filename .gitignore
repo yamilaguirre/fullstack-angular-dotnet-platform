@@ -2,6 +2,9 @@
 .DS_Store
 Thumbs.db
 
+# IDE / local AI tooling (not part of submission)
+.cursor/
+
 # IDE
 .idea/
 .vscode/*
@@ -10,6 +13,7 @@ Thumbs.db
 *.suo
 
 # Secrets & local settings
+.env
 **/appsettings.Development.local.json
 **/secrets.json
 
