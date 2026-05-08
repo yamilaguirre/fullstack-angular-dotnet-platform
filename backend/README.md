@@ -19,9 +19,13 @@ dotnet run
 
 Default URLs (see `Properties/launchSettings.json`): HTTPS `https://localhost:7189`, HTTP `http://localhost:5191`. Swagger UI: **`/swagger`**.
 
-Smoke check without DB hit:
+Smoke check without hitting client data:
 
-- `GET /Health` → `{ "status": "ok", "service": "Evalua.Api" }`
+- `GET /health` → `{ "status": "ok", "service": "Evalua.Api" }`
+
+Paginated clients + country (stored procedure path):
+
+- `GET /api/clientes/sp?page=1&pageSize=10` → JSON `items`, `page`, `pageSize`, `totalCount`
 
 Connection string placeholder (Windows auth example):
 

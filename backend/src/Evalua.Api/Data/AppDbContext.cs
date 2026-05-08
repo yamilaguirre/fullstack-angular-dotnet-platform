@@ -1,3 +1,4 @@
+using Evalua.Api.Data.Sp;
 using Evalua.Api.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,11 @@ public class AppDbContext : DbContext
                 .WithMany(p => p.Clientes)
                 .HasForeignKey(e => e.IdPais)
                 .HasConstraintName("FK_Clientes_Paises_IdPais");
+        });
+
+        modelBuilder.Entity<ClientePaginadoSpRow>(entity =>
+        {
+            entity.HasNoKey();
         });
     }
 }
