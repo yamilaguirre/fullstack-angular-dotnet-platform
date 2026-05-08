@@ -34,6 +34,8 @@ Connection string placeholder (Windows auth example):
 Server=localhost;Database=EvaluaClientes;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
 ```
 
+CORS policy **`AngularLocalhost`** allows the Angular dev server at `http://localhost:4200`.
+
 For macOS/Linux use `User ID=` / `Password=` or Docker SQL Server accordingly.
 
 ---
