@@ -19,14 +19,13 @@ See each folder’s **README.md** for architecture and run instructions (populat
 
 ---
 
-## Getting started — Phase 0
+## Getting started
 
-This repository is scaffolded incrementally:
+1. **Phase 0:** repo structure, `.gitignore`, README stubs.
+2. **Phase 1:** SQL Server scripts under `backend/db/`.
+3. **Phase 2:** .NET 8 API scaffold with EF Core mapping and `GET /Health` (Swagger at `/swagger`).
 
-1. **Phase 0 (current):** structure, `.gitignore`, and README stubs only.
-2. Later phases add database scripts, API, and Angular UI.
-
-Nothing is runnable yet at the solution level beyond verifying the repo structure.
+Run the API: see [`backend/README.md`](backend/README.md). Angular UI comes in a later phase.
 
 ---
 

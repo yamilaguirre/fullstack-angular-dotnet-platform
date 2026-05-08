@@ -1,41 +1,61 @@
 # Backend (.NET API)
 
-ASP.NET Core **Web API** targeting **.NET 8**, **Entity Framework Core** (SQL Server), and two endpoints that return paginated clients with origin country:
-
-1. Implemented via **stored procedure**.
-2. Implemented via **LINQ / EF Core** query methods.
+ASP.NET Core **Web API** on **.NET 8**, **SQL Server** via **EF Core**, Swagger in Development. Two paginated cliente endpoints arrive in subsequent phases (**stored procedure** + **LINQ**).
 
 ## Database (SQL Server)
 
-Scripts live in [`db/`](db/) and run in order:
+Scripts in [`db/`](db/): run `001` → `002` → `003` on database `EvaluaClientes` (or update the connection string).
 
-| File | Purpose |
-|------|---------|
-| `001-schema.sql` | Tables `Paises`, `Clientes`, FK |
-| `002-seed.sql` | Sample countries & clients |
-| `003-stored-procedure.sql` | `dbo.usp_ClientesPaginados` |
+## Running the API locally
 
-Create a database (e.g. `EvaluaClientes`), then execute the scripts against it in SSMS / Azure Data Studio / `sqlcmd`.
+Requires [.NET 8 SDK](https://dotnet.microsoft.com/download):
 
-### Stored procedure smoke test
-
-```sql
-EXEC dbo.usp_ClientesPaginados @PageNumber = 1, @PageSize = 3;
-EXEC dbo.usp_ClientesPaginados @PageNumber = 2, @PageSize = 3;
+```bash
+cd backend/src/Evalua.Api
+dotnet restore
+dotnet ef --version    # optional: ensures design-time tools resolve
+dotnet run
 ```
 
-Expect `NombrePais` populated, `TotalRegistros = 8`, and different `PageNumber` / paging window.
+Default URLs (see `Properties/launchSettings.json`): HTTPS `https://localhost:7189`, HTTP `http://localhost:5191`. Swagger UI: **`/swagger`**.
+
+Smoke check without DB hit:
+
+- `GET /Health` → `{ "status": "ok", "service": "Evalua.Api" }`
+
+Connection string placeholder (Windows auth example):
+
+```
+Server=localhost;Database=EvaluaClientes;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
+```
+
+For macOS/Linux use `User ID=` / `Password=` or Docker SQL Server accordingly.
 
 ---
 
-## Source code (.NET API)
+## Solution layout
 
-Solution and projects are generated in Phase 2+ (`src/`).
+| Path | Role |
+|------|------|
+| `Evalua.Platform.sln` | Solution |
+| `src/Evalua.Api/` | ASP.NET Core host (`Program.cs`), controllers, EF context |
+| `src/Evalua.Api/Entities/` | `Cliente`, `Pais` POCOs mapped to existing tables |
+| `src/Evalua.Api/Data/AppDbContext.cs` | Fluent mapping to `dbo.Clientes` / `dbo.Paises` |
 
-## Architecture (preview)
+## Architecture snapshot
 
 ```
-backend/
-├── src/<ApiProject>/
-└── db/
+Client (Angular later)
+       │ HTTP JSON
+       ▼
+Evalua.Api  ←── AppDbContext → SQL Server (tables + SP)
 ```
+
+## Tech stack references
+
+| Technology | Purpose |
+|------------|---------|
+| **ASP.NET Core** | HTTP pipeline, controllers, dependency injection container |
+| **EF Core** | ORM mapping; LINQ queries in a later endpoint |
+| **Swashbuckle** | Swagger / OpenAPI in Development |
+| **SQL Server** | Relational persistence; scripts under `db/` |
