@@ -1,0 +1,76 @@
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1>Clientes</h1>
+      <p class="muted">Listado paginado con país de origen (Angular + API .NET).</p>
+    </div>
+
+    <div class="toolbar">
+      <label class="toolbar__label">
+        Origen de datos
+        <select [value]="source()" (change)="setSource($any($event.target).value)">
+          <option value="ef">Entity Framework (LINQ)</option>
+          <option value="sp">Stored procedure</option>
+        </select>
+      </label>
+
+      <label class="toolbar__label">
+        Tamaño de página
+        <select [value]="pageSize()" (change)="changePageSize(+$any($event.target).value)">
+          <option [value]="3">3</option>
+          <option [value]="5">5</option>
+          <option [value]="10">10</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="state">Cargando…</p>
+  }
+
+  @if (errorMessage(); as err) {
+    <p class="state state--error">{{ err }}</p>
+  }
+
+  @if (data(); as payload) {
+    <div class="meta">
+      <span>Página <strong>{{ payload.page }}</strong> de <strong>{{ totalPages() }}</strong></span>
+      <span class="muted">Total registros: {{ payload.totalCount }}</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>País</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (cliente of payload.items; track trackByCliente($index, cliente)) {
+            <tr>
+              <td>{{ cliente.nombreCompleto }}</td>
+              <td class="mono">{{ cliente.telefono | telefonoFormat }}</td>
+              <td>{{ cliente.nombrePais }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pager" aria-label="Paginación">
+      <button type="button" (click)="goToPage(payload.page - 1)" [disabled]="payload.page <= 1">
+        Anterior
+      </button>
+      <button
+        type="button"
+        (click)="goToPage(payload.page + 1)"
+        [disabled]="payload.page >= totalPages()"
+      >
+        Siguiente
+      </button>
+    </nav>
+  }
+</section>
